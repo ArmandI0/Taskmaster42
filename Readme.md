@@ -1,3 +1,9 @@
+## Usage
+
+```bash
+python3 taskmaster.py -c config.yml
+```
+
 ## Notes
 
 ## Commande a implementer
