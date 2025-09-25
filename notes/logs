@@ -1,0 +1,50 @@
+
+aranger@Debian:~/a$ python3 taskmaster.py -c test_programs/config.yml
+taskmaster > status
+status: status requires a process name
+    status <name>          Stop a process
+    status <name> <name>   Stop multiple processes or groups
+    status all             Stop all processes
+    
+taskmaster > status all
+all                             STARTING  
+taskmaster > reread
+Error :  Can't REREAD : in task 'test2': Task 'test2': umask must be a non-empty string like '022'
+taskmaster > reread
+test2: available
+test_my_stop_signal: available
+taskmaster > update 
+test2 : started
+test_my_stop_signal : started
+taskmaster > status
+status: status requires a process name
+    status <name>          Stop a process
+    status <name> <name>   Stop multiple processes or groups
+    status all             Stop all processes
+    
+taskmaster > status all
+all                             RUNNING   pid 7872, uptime 0:00:55
+test2                           STARTING  
+test_my_stop_signal             FATAL     
+taskmaster > reread
+test2: changed
+test_my_stop_signal: changed
+taskmaster > reread
+No config updates to processes
+taskmaster > update
+test2 : ERROR (not running)
+test_my_stop_signal : ERROR (not running)
+test2 : started
+
+
+
+
+de
+
+^C
+taskmaster > status all
+all                             RUNNING   pid 7872, uptime 0:03:38
+test2                           STOPPED   Not started
+test_my_stop_signal             FATAL     
+taskmaster > 
+

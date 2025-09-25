@@ -110,7 +110,10 @@ class Task:
         self.processus_time_start = time.time()
         self.processus_status = State.STARTING
         logging.info(f"{self.name} starting")
-        self.process = subprocess.Popen(self.cmd, stdout=self.stdout_file, stderr=self.stderr_file, text=True, cwd=self.workingdir, start_new_session=True)
+        try:
+            self.process = subprocess.Popen(self.cmd, stdout=self.stdout_file, stderr=self.stderr_file, text=True, cwd=self.workingdir, start_new_session=True)
+        except Exception as e:
+            print(e)
 
     def stop(self):
         signals = {

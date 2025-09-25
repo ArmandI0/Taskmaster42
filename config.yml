@@ -1,0 +1,23 @@
+programs:
+  all:
+    cmd: "python3 server.py"
+    numprocs: 1
+    umask: "022"
+    autostart: true
+    autorestart: false
+
+
+  test2:
+    cmd: "sleep 1000"
+    numprocs: 2
+    umask: "022"
+    workingdir: /tmp
+    autostart: false
+    autorestart: false
+    exitcodes: [0, 1]
+    startretries: 2
+    starttime: 10
+    stopsignal: TERM
+    stoptime: 6
+    stdout: /dev/null
+    stderr: /tmp/stderr_echo

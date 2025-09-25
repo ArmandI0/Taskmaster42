@@ -1,0 +1,46 @@
+programs:
+  # all:
+  #   cmd: "python3 server.py"
+  #   numprocs: 1
+  #   umask: "022"
+  #   autostart: true
+  #   autorestart: false
+  #   exitcodes: [0]
+  #   startretries: 0
+  #   starttime: 10
+  #   stopsignal: TERM
+  #   stoptime: 6
+  #   stdout: hello-web.out
+  #   stderr: hello-web.err
+  #   workingdir: test_programs
+
+  # test2:
+  #   cmd: "/usr/bin/echo coucou"
+  #   numprocs: 1
+  #   umask: "022"
+  #   workingdir: /tmp
+  #   autostart: true
+  #   autorestart: false
+  #   exitcodes: [0, 1]
+  #   startretries: 2
+  #   starttime: 10
+  #   stopsignal: TERM
+  #   stoptime: 6
+  #   stdout: /tmp/stdout_echo
+  #   stderr: /tmp/stderr_echo
+
+  test_my_stop_signal:
+    cmd: "/bin/bosh /app/test_supervisor/programmes/ignore_SIGHUP.sh"
+    numprocs: 1
+    umask: "022"
+    workingdir: /tmp
+    autostart: true
+    autorestart: true
+    exitcodes: [0]
+    startretries: 2
+    starttime: 1
+    stopsignal: HUP
+    stoptime: 20
+    stdout: /tmp/test_my_stop_signal.out.log
+    stderr: /tmp/test_my_stop_signal.err.log
+

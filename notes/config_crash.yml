@@ -1,0 +1,27 @@
+# CHECK LES NUMPROCS
+# Empecher les nom de programme pourri genre all
+
+# Auqnd on enleve la stdout aranger@Debian:~/a$ python3 taskmaster.py -c test_programs/config.yml
+# taskmaster > coucou
+# /bin/bash: /app/test_supervisor/programmes/ignore_SIGHUP.sh: No such file or directory
+# Serveur lancé sur http://localhost:8080
+# /bin/bash: /app/test_supervisor/programmes/ignore_SIGHUP.sh: No such file or directory
+# /bin/bash: /app/test_supervisor/programmes/ignore_SIGHUP.sh: No such file or directory
+
+#Charger un environnement
+
+  test_my_stop_signal:
+    cmd: "/bin/bosh /app/test_supervisor/programmes/ignore_SIGHUP.sh"
+    numprocs: 1   
+    umask: "022"
+    workingdir: /tmp
+    autostart: true
+    autorestart: true
+    exitcodes: [0]
+    startretries: 2
+    starttime: 1
+    stopsignal: HUP
+    stoptime: 20
+    stdout: /tmp/test_my_stop_signal.out.log
+    stderr: /tmp/test_my_stop_signal.err.log
+
