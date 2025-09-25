@@ -1,7 +1,7 @@
 import yaml
 import sys
 import time
-from task       import Task, State
+from Task       import Task, State
 from typing     import Dict, List
 from threading  import Lock, Event
 
