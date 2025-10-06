@@ -1,9 +1,11 @@
 import yaml
 import sys
 import time
-from Task       import Task, State
-from typing     import Dict, List
-from threading  import Lock, Event
+from SimpleTask		import SimpleTask, State
+from MultipleTask	import MultiTask
+from typing     	import Dict, List, Tuple
+from threading  	import Lock, Event
+from Task			import Task
 
 TICK_RATE = 0.5
 
@@ -15,6 +17,21 @@ class Supervisor:
         self.new_processus_list: Dict[str, Task] = {} # Quand j'update je dois regarder si les taches sont presents dans la nouvelles liste avant de les stops
         self.new_processus_to_start: Dict[str, Task] = {}
         self.old_processus_to_stop: List = []
+
+    def _get_task_by_full_name(self, full_name: str) -> Task | None:
+        """Returns the task for a given task name (simple or subtask)"""
+        if ":" in full_name:
+            main_name, subtask_name = full_name.split(":", 1)
+            if main_name in self.processus_list:
+                task = self.processus_list[main_name]
+                if isinstance(task, MultiTask):
+                    return task.get_subtask(subtask_name)
+                print(f"Error: {main_name} is not a multi-task process")
+                return None
+        else:
+            if full_name in self.processus_list:
+                return self.processus_list[full_name]
+        return None
 
     def load_config(self, path_to_config: str):
         try:
@@ -34,7 +51,10 @@ class Supervisor:
         self.path_to_config = path_to_config
         for name, config in config_data["programs"].items():
             try:
-                task = Task.create(name, config)
+                if config["numprocs"] > 1:
+                    task = MultiTask(name, config)
+                else:
+                    task = SimpleTask.create(name, config)
                 task.raw_config = config
                 self.processus_list[name] = task
             except Exception as e:
@@ -43,31 +63,36 @@ class Supervisor:
 
     # Start attend que tous les programmes change d'etat RUNNING au  moins une fois pass a -> BACKOFF, FATAL ou RUNNING
     def start(self, processus_names: List[str] = None, all: bool = None):
-        processus_to_start: List[Task] = []
+        waiting_list_of_starting_processus: List[Task] = []
         with self.lock:
             if all == True:
                 for processus in self.processus_list.values():
-                    if processus.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
-                        print(f"{processus.name} : ERROR (already started)")
+                    if isinstance(processus, MultiTask): # If numprocs > 1
+                        results = processus.start()
+                        for task in processus.tasks:
+                            if task.name in results["success"]:
+                                waiting_list_of_starting_processus.append(task) # Add each running task to waiting List
                     else:
-                        processus.start()
-                        processus_to_start.append(processus)
+                        if processus.start() == 0: # If start success add task to waiting List
+                            waiting_list_of_starting_processus.append()                   
             else:
-                for processus_name in processus_names:
-                    if processus_name not in self.processus_list:
-                        print(f"{processus_name} : ERROR (no such process)")
-                    elif self.processus_list[processus_name].processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
-                        print(f"{processus_name} : ERROR (already started)")
+                for full_name in processus_names:
+                    task, _ = self._get_task_by_full_name(full_name)
+                    if task is None:
+                        print(f"{full_name} : ERROR (no such process)")
+                    elif task.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
+                        print(f"{full_name} : ERROR (already started)")
                     else:
-                        self.processus_list[processus_name].start()
-                        processus_to_start.append(self.processus_list[processus_name])
+                        task.start()
+                        waiting_list_of_starting_processus.append(task)
 
-        while processus_to_start:
+        while waiting_list_of_starting_processus:
+            # Il faut retirer les process si ils sont plus en running et afficher leurs status actuel
             with self.lock:
-                for processus in processus_to_start:
+                for processus in waiting_list_of_starting_processus:
                     if processus.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
                         print(f"{processus.name} : started")
-                        processus_to_start.remove(processus)
+                        waiting_list_of_starting_processus.remove(processus)
             time.sleep(TICK_RATE)
     
 
@@ -198,14 +223,14 @@ class Supervisor:
             if not processus_names:
                 print("No process names provided")
                 return
-            for name in processus_names:
-                processus = self.processus_list.get(name)
-                if processus is None:
-                    print(f"{name} : ERROR (no such process)")
-                elif processus.processus_status is None:
-                    print(f"{name:<32}UNKNOWN")
+            for full_name in processus_names:
+                task, _ = self._get_task_by_full_name(full_name)
+                if task is None:
+                    print(f"{full_name} : ERROR (no such process)")
+                elif task.processus_status is None:
+                    print(f"{full_name:<32}UNKNOWN")
                 else:
-                    print(processus.status())
+                    print(task.status())
 
 
     

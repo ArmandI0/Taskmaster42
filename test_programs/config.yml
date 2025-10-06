@@ -1,6 +1,6 @@
 programs:
   all:
-    cmd: "python3 server.py"
+    cmd: "pythdscson3 server.py"
     numprocs: 10
     umask: "022"
     autostart: true

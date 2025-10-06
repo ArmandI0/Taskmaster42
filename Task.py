@@ -18,5 +18,5 @@ class Task(ABC):
         pass
 
     @abstractmethod
-    def status(self) -> str:
+    def status(self):
         pass

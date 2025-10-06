@@ -21,7 +21,7 @@ class State(Enum):
     UNKNOWN = auto()
     NEVER_STARTED = auto()
 
-class Task:
+class SimpleTask:
     name: str
     cmd: list
     numprocs: int
@@ -102,6 +102,9 @@ class Task:
         return file
 
     def start(self):
+        if self.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]: # If process is already started or in starting progress
+            print(f"{self.name} : ERROR (already started)")
+            return 1
         if self.stdout is not None:
             self.stdout_file = self.open_with_umask(self.stdout)
         if self.stderr is not None:
@@ -109,11 +112,14 @@ class Task:
 
         self.processus_time_start = time.time()
         self.processus_status = State.STARTING
-        logging.info(f"{self.name} starting")
         try:
             self.process = subprocess.Popen(self.cmd, stdout=self.stdout_file, stderr=self.stderr_file, text=True, cwd=self.workingdir, start_new_session=True)
+            logging.info(f"{self.name} starting")
+            return 0
         except Exception as e:
-            print(e)
+            logging.error(f"{self.name} fatal : {e}")
+            self.processus_status = State.FATAL
+            return 1
 
     def stop(self):
         signals = {
@@ -126,6 +132,10 @@ class Task:
             "QUIT": signal.SIGQUIT,
         }
         sig = signals.get(self.stopsignal)
+        if self.process is None:
+            self.processus_status = State.STOPPED
+            return
+
         self.process.send_signal(sig)
         if self.process.poll() is not None:
             self.processus_status = State.STOPPED
@@ -136,53 +146,55 @@ class Task:
             self.processus_status = State.STOPPING
             logging.info(f"{self.name} stopping")
 
-    def supervise(self) -> str:
-        if self.processus_status == State.STARTING:
-            if self.process.poll() is not None and self.process.poll() not in self.exitcodes:
-                if self.retry < self.startretries:
-                    self.retry += 1
-                    self.processus_status = State.BACKOFF
-                    logging.info(f"{self.name} backoff")
+    def supervise(self):
+        if self.process is not None:
+            poll_state = self.process.poll()
+            if self.processus_status == State.STARTING:
+                if poll_state is not None and poll_state not in self.exitcodes:
+                    if self.retry < self.startretries:
+                        self.retry += 1
+                        self.processus_status = State.BACKOFF
+                        logging.info(f"{self.name} backoff")
+                        self.close_redir()
+                    else:
+                        self.processus_status = State.FATAL
+                        logging.info(f"{self.name} fatal")
+                        self.close_redir()
+                elif time.time() - self.processus_time_start >= self.starttime:
+                    self.processus_status = State.RUNNING
+                    logging.info(f"{self.name} running")
+            elif self.processus_status == State.BACKOFF:
+                time.sleep(0.5)
+                self.start()
+            elif self.processus_status == State.RUNNING:
+                if poll_state is not None:
                     self.close_redir()
-                else:
-                    self.processus_status = State.FATAL
-                    logging.info(f"{self.name} fatal")
+                    if poll_state in self.exitcodes:
+                        self.processus_status = State.STOPPED
+                        logging.info(f"{self.name} stopped")
+                    elif self.autorestart:
+                        self.retry = 0
+                        self.processus_status = State.BACKOFF
+                        logging.info(f"{self.name} backoff")
+                    else:
+                        self.processus_status = State.FATAL
+                        logging.info(f"{self.name} fatal")
+            elif self.processus_status == State.STOPPING:
+                if poll_state is not None:
                     self.close_redir()
-            elif time.time() - self.processus_time_start >= self.starttime:
-                self.processus_status = State.RUNNING
-                logging.info(f"{self.name} running")
-        elif self.processus_status == State.BACKOFF:
-            time.sleep(0.5)
-            self.start()
-        elif self.processus_status == State.RUNNING:
-            if self.process.poll() is not None:
-                self.close_redir()
-                if self.process.poll() in self.exitcodes:
                     self.processus_status = State.STOPPED
                     logging.info(f"{self.name} stopped")
-                elif self.autorestart:
-                    self.retry = 0
-                    self.processus_status = State.BACKOFF
-                    logging.info(f"{self.name} backoff")
-                else:
-                    self.processus_status = State.FATAL
-                    logging.info(f"{self.name} fatal")
-        elif self.processus_status == State.STOPPING:
-            if self.process.poll() is not None:
-                self.close_redir()
-                self.processus_status = State.STOPPED
-                logging.info(f"{self.name} stopped")
-            elif time.time() - self.processus_time_stop >= self.stoptime:
-                self.process.kill()
-                self.close_redir()
-                self.processus_status = State.STOPPED
-                logging.info(f"{self.name} stopped")
+                elif time.time() - self.processus_time_stop >= self.stoptime:
+                    self.process.kill()
+                    self.close_redir()
+                    self.processus_status = State.STOPPED
+                    logging.info(f"{self.name} stopped")
 
 
     def status(self):
         buffer = f"{self.name:<32}{self.processus_status.name:<10}"
 
-        if self.processus_status == State.RUNNING:
+        if self.processus_status == State.RUNNING and self.process is not None:
             uptime = timedelta(seconds=int(time.time() - self.processus_time_start))
             buffer += f"pid {self.process.pid}, uptime {uptime}"
         if self.processus_status == State.STOPPED:
@@ -191,6 +203,5 @@ class Task:
                 buffer += f"{stop_time}"
             else:
                 buffer += f"Not started"
-
         return buffer
         
