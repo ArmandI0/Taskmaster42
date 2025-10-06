@@ -6,6 +6,8 @@ import sys
 
 COMMANDS = ["status", "start", "stop", "restart", "reread", "update", "shutdown", "help"]
 
+sighup_event = Event()
+
 def completer(text, state):
     options = [cmd for cmd in COMMANDS if cmd.startswith(text)]
     if state < len(options):
@@ -27,13 +29,24 @@ def run_shell(taskmaster: Supervisor, event: Event):
     def handle_sigquit(signum, frame):
         raise EOFError
 
+    def handle_sighup(signum, frame):
+        print("\n[!] SIGHUP received → rereading config")
+        taskmaster.reread()
+        print("taskmaster > ", end="", flush=True)
+
     signal.signal(signal.SIGQUIT, handle_sigquit)
+    signal.signal(signal.SIGHUP, handle_sighup)
 
     while not event.is_set():
         try:
             user_input = input("taskmaster > ").strip()
             if not user_input:
                 continue
+
+            if sighup_event.is_set():
+                sighup_event.clear()
+                taskmaster.reread()
+                continue 
 
             args = user_input.split()
             command = args[0]

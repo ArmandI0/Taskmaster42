@@ -1,5 +1,5 @@
 programs:
-  web:
+  lolo:
     cmd: "python3 server.py"
     numprocs: 10
     umask: "022"
