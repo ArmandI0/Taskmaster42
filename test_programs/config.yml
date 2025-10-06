@@ -1,6 +1,6 @@
 programs:
-  all:
-    cmd: "pythdscson3 server.py"
+  toto:
+    cmd: "sleep 10"
     numprocs: 10
     umask: "022"
     autostart: true
@@ -14,3 +14,17 @@ programs:
     stderr: hello-web.err
     workingdir: test_programs
 
+  toto32:
+    cmd: "sleep 10"
+    numprocs: 1
+    umask: "022"
+    autostart: true
+    autorestart: false
+    exitcodes: [0]
+    startretries: 0
+    starttime: 10
+    stopsignal: TERM
+    stoptime: 6
+    stdout: hello-web.out
+    stderr: hello-web.err
+    workingdir: test_programs

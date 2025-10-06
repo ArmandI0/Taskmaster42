@@ -21,6 +21,26 @@ class State(Enum):
     UNKNOWN = auto()
     NEVER_STARTED = auto()
 
+STOPPED_STATES = (
+    State.STOPPED,
+    State.EXITED,
+    State.FATAL,
+    State.UNKNOWN,
+    State.NEVER_STARTED,
+)
+
+RUNNING_STATES = (
+    State.RUNNING,
+    State.BACKOFF,
+    State.STARTING,
+)
+
+SIGNALLABLE_STATES = (
+    State.RUNNING,
+    State.STARTING,
+    State.STOPPING,
+)
+
 class SimpleTask:
     name: str
     cmd: list
@@ -102,9 +122,10 @@ class SimpleTask:
         return file
 
     def start(self):
-        if self.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]: # If process is already started or in starting progress
+        if self.processus_status in RUNNING_STATES: # If process is already started or in starting progress
             print(f"{self.name} : ERROR (already started)")
             return 1
+
         if self.stdout is not None:
             self.stdout_file = self.open_with_umask(self.stdout)
         if self.stderr is not None:
@@ -122,6 +143,10 @@ class SimpleTask:
             return 1
 
     def stop(self):
+        if self.processus_status in STOPPED_STATES:
+            print(f"{self.name} : ERROR (not running)") 
+            return 1
+
         signals = {
             "TERM": signal.SIGTERM,
             "KILL": signal.SIGKILL,
@@ -134,7 +159,7 @@ class SimpleTask:
         sig = signals.get(self.stopsignal)
         if self.process is None:
             self.processus_status = State.STOPPED
-            return
+            return 1
 
         self.process.send_signal(sig)
         if self.process.poll() is not None:
@@ -145,6 +170,7 @@ class SimpleTask:
             self.processus_time_stop = time.time()
             self.processus_status = State.STOPPING
             logging.info(f"{self.name} stopping")
+        return 0
 
     def supervise(self):
         if self.process is not None:
@@ -203,5 +229,5 @@ class SimpleTask:
                 buffer += f"{stop_time}"
             else:
                 buffer += f"Not started"
-        return buffer
+        print(buffer)
         

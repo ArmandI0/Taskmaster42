@@ -1,7 +1,7 @@
 import yaml
 import sys
 import time
-from SimpleTask		import SimpleTask, State
+from SimpleTask		import SimpleTask, State, STOPPED_STATES, RUNNING_STATES
 from MultipleTask	import MultiTask
 from typing     	import Dict, List, Tuple
 from threading  	import Lock, Event
@@ -18,15 +18,16 @@ class Supervisor:
         self.new_processus_to_start: Dict[str, Task] = {}
         self.old_processus_to_stop: List = []
 
-    def _get_task_by_full_name(self, full_name: str) -> Task | None:
-        """Returns the task for a given task name (simple or subtask)"""
+    def _get_task_by_full_name(self, full_name: str):
+        """
+            Returns the task for Multiple or Simple Task
+        """
         if ":" in full_name:
             main_name, subtask_name = full_name.split(":", 1)
             if main_name in self.processus_list:
                 task = self.processus_list[main_name]
                 if isinstance(task, MultiTask):
                     return task.get_subtask(subtask_name)
-                print(f"Error: {main_name} is not a multi-task process")
                 return None
         else:
             if full_name in self.processus_list:
@@ -34,6 +35,9 @@ class Supervisor:
         return None
 
     def load_config(self, path_to_config: str):
+        """
+            Load Config and create Task instance for each program
+        """
         try:
             with open(path_to_config, 'r') as file:
                 config_data = yaml.safe_load(file)
@@ -63,6 +67,9 @@ class Supervisor:
 
     # Start attend que tous les programmes change d'etat RUNNING au  moins une fois pass a -> BACKOFF, FATAL ou RUNNING
     def start(self, processus_names: List[str] = None, all: bool = None):
+        """
+            Start and wait processus starting
+        """
         waiting_list_of_starting_processus: List[Task] = []
         with self.lock:
             if all == True:
@@ -77,21 +84,27 @@ class Supervisor:
                             waiting_list_of_starting_processus.append()                   
             else:
                 for full_name in processus_names:
-                    task, _ = self._get_task_by_full_name(full_name)
-                    if task is None:
+                    processus = self._get_task_by_full_name(full_name) # Get task or subtask for call .start method
+                    if processus is None:
                         print(f"{full_name} : ERROR (no such process)")
-                    elif task.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
-                        print(f"{full_name} : ERROR (already started)")
+                    if isinstance(processus, MultiTask): # If numprocs > 1
+                        results = processus.start()
+                        for task in processus.tasks:
+                            if task.name in results["success"]:
+                                waiting_list_of_starting_processus.append(task) # Add each running task to waiting List
                     else:
-                        task.start()
-                        waiting_list_of_starting_processus.append(task)
-
+                        if processus.start() == 0: # If start success add task to waiting List
+                            waiting_list_of_starting_processus.append()
+        # Waiting starting processus
         while waiting_list_of_starting_processus:
             # Il faut retirer les process si ils sont plus en running et afficher leurs status actuel
             with self.lock:
                 for processus in waiting_list_of_starting_processus:
-                    if processus.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
+                    if processus.processus_status in [State.RUNNING, State.BACKOFF]:
                         print(f"{processus.name} : started")
+                        waiting_list_of_starting_processus.remove(processus)
+                    elif processus.processus_status in STOPPED_STATES:
+                        print(f"{processus.name} :  ERROR (spawn error)")
                         waiting_list_of_starting_processus.remove(processus)
             time.sleep(TICK_RATE)
     
@@ -99,32 +112,37 @@ class Supervisor:
     # la commande interagie avec les etats RUNNING STARTING et BACKOFF
     # Gerer les retours si bad processsu name dans le parsing Shell
     def stop(self, processus_names: List[str] = None, all: bool = None):
-        processus_to_stop: List[Task] = []
+        waiting_list_of_processus_to_stop: List[Task] = []
         with self.lock:
             if all == True:
                 for processus in self.processus_list.values():
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                        print(f"{processus.name} : ERROR (not running)") 
+                    if isinstance(processus, MultiTask): # If numprocs > 1
+                        results = processus.stop()
+                        for task in processus.tasks:
+                            if task.name in results["success"]:
+                                waiting_list_of_processus_to_stop.append(task) # Add each running task to waiting List
                     else:
-                        processus.stop()
-                        processus_to_stop.append(processus)
+                        if processus.stop() == 0: # If stop success add task to waiting List
+                            waiting_list_of_processus_to_stop.append()   
             else:
-                for processus_name in processus_names:
-                    if processus_name not in self.processus_list:
-                        print(f"{processus_name} : ERROR (no such process)")
-                    elif self.processus_list[processus_name].processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                        print(f"{processus_name} : ERROR (not running)") 
+                for full_name in processus_names:
+                    processus = self._get_task_by_full_name(full_name) # Get task or subtask for call .stop method
+                    if processus is None:
+                        print(f"{full_name} : ERROR (no such process)")
+                    if isinstance(processus, MultiTask): # If numprocs > 1
+                        results = processus.stop()
+                        for task in processus.tasks:
+                            if task.name in results["success"]:
+                                waiting_list_of_processus_to_stop.append(task) # Add each running task to waiting List
                     else:
-                        self.processus_list[processus_name].stop()
-                        processus_to_stop.append(self.processus_list[processus_name])
-        while processus_to_stop:
+                        if processus.stop() == 0: # If start success add task to waiting List
+                            waiting_list_of_processus_to_stop.append()
+        while waiting_list_of_processus_to_stop:
             with self.lock:
-                for processus in processus_to_stop:
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL]:
+                for processus in waiting_list_of_processus_to_stop:
+                    if processus.processus_status in STOPPED_STATES:
                         print(f"{processus.name} : stopped")
-                        processus_to_stop.remove(processus)
-            time.sleep(TICK_RATE)
-
+                        waiting_list_of_processus_to_stop.remove(processus)            
 
     def restart(self, processus_names: List[str] = None, all: bool = None):
         self.stop(processus_names, all)
@@ -214,39 +232,23 @@ class Supervisor:
 
     def status(self, processus_names: list[str] = None, all: bool = None):
         if all:
-            for name, processus in self.processus_list.items():
-                if processus.processus_status is None:
-                    print(f"{name:<32}UNKNOWN")
-                else:
-                    print(processus.status())
-        else:
-            if not processus_names:
-                print("No process names provided")
-                return
-            for full_name in processus_names:
-                task, _ = self._get_task_by_full_name(full_name)
-                if task is None:
-                    print(f"{full_name} : ERROR (no such process)")
-                elif task.processus_status is None:
-                    print(f"{full_name:<32}UNKNOWN")
-                else:
-                    print(task.status())
-
+            for processus in self.processus_list.values():
+                processus.status()
 
     
     def shutdown(self):
         processus_to_stop: List[Task] = []
         with self.lock:
             for processus in self.processus_list.values():
-                if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                    pass 
-                else:
+                if processus.processus_status not in STOPPED_STATES:
                     processus.stop()
                     processus_to_stop.append(processus)
+
         while processus_to_stop:
             with self.lock:
                 for processus in processus_to_stop:
                     if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL]:
                         print(f"{processus.name} : stopped")
                         processus_to_stop.remove(processus)
+                    
             time.sleep(TICK_RATE)

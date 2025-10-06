@@ -1,6 +1,6 @@
 from Task		import Task
 from SimpleTask import SimpleTask
-from typing import List
+from typing     import List
 
 class MultiTask(Task):
     def __init__(self, name: str, raw_config: dict):
@@ -13,8 +13,7 @@ class MultiTask(Task):
 
         for i in range(self.numprocs):
             config_copy = dict(raw_config)
-            config_copy["name"] = f"{name}_{i}"
-            task = SimpleTask.create(config_copy["name"], config_copy)
+            task = SimpleTask.create(f"{name}_{i}", config_copy)
             self.tasks.append(task)
 
     def start(self) -> dict:
@@ -25,22 +24,34 @@ class MultiTask(Task):
         }
         for task in self.tasks:
             result = task.start()
+            # Register return value for the Supervisor part
             if result == 0:
-                results["success"].append(task.name)
+                results["success"].append(task.name) 
             else:
                 results["errors"].append(task.name)
         return results
 
     def stop(self):
+        results = {
+            "success": [],
+            "errors": []
+        }
         for task in self.tasks:
-            task.stop()
+            result = task.stop()
+            if result == 0:
+                results["success"].append(task.name) 
+            else:
+                results["errors"].append(task.name)
+        return results
 
     def supervise(self):
         for task in self.tasks:
             task.supervise()
 
     def status(self):
-        return "\n".join(task.status() for task in self.tasks)
+        for task in self.tasks:
+            print(f"{self.name}", end=":")
+            task.status()
 
     def get_subtask(self, subtask_name: str) -> SimpleTask:
         for task in self.tasks:
