@@ -3,7 +3,7 @@ import signal
 
 def validate_task_config(name, config):
     return {
-        "name": name,
+        "name": validate_name(name, config),
         "cmd": validate_cmd(name, config),
         "numprocs": validate_numprocs(name, config, 1),
         "umask": validate_umask(name, config, "022"),
@@ -22,6 +22,11 @@ def validate_task_config(name, config):
 
 def err(name, msg):
     raise ValueError(f"Task '{name}': {msg}")
+
+def validate_name(name, config):
+    if not isinstance(name, str) or not name.strip() or name.strip() == "all":
+        err(name, "'name' is required and must best a non-empty string. Banned name: 'all'.")
+    return name.strip().split()
 
 def validate_cmd(name, config):
     cmd = config.get("cmd")

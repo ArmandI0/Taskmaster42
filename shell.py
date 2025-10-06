@@ -1,6 +1,8 @@
+import signal
 from Supervisor import Supervisor
 from threading import Event
 import readline
+import sys
 
 COMMANDS = ["status", "start", "stop", "restart", "reread", "update", "shutdown", "help"]
 
@@ -21,6 +23,11 @@ def run_shell(taskmaster: Supervisor, event: Event):
     readline.set_completer(completer)
     readline.parse_and_bind("tab: complete")
     readline.set_history_length(1000)
+
+    def handle_sigquit(signum, frame):
+        raise EOFError
+
+    signal.signal(signal.SIGQUIT, handle_sigquit)
 
     while not event.is_set():
         try:
@@ -92,7 +99,7 @@ def run_shell(taskmaster: Supervisor, event: Event):
             print("")
             continue
         except EOFError:
-            print("\n[!] Caught Ctrl+D → shutting down...")
+            print("\n[!] Caught Ctrl+D or SIGQUIT → shutting down...")
             taskmaster.shutdown()
             event.set()
             break
