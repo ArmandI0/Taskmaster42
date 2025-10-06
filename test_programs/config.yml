@@ -13,4 +13,7 @@ programs:
     stdout: hello-web.out
     stderr: hello-web.err
     workingdir: test_programs
+    env:
+      CONTENT: "hello-web"
+      PORT: "8081"
 
