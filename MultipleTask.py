@@ -13,7 +13,7 @@ class MultiTask(Task):
 
         for i in range(self.numprocs):
             config_copy = dict(raw_config)
-            task = SimpleTask.create(f"{name}_{i}", config_copy)
+            task = SimpleTask.create(f"{name}:{i}", config_copy)
             self.tasks.append(task)
 
     def start(self) -> dict:
@@ -29,7 +29,10 @@ class MultiTask(Task):
                 results["success"].append(task.name) 
             else:
                 results["errors"].append(task.name)
-        return results
+        if results["success"]:
+            return 0
+        else:
+            return 1
 
     def stop(self):
         results = {
@@ -50,12 +53,12 @@ class MultiTask(Task):
 
     def status(self):
         for task in self.tasks:
-            print(f"{self.name}", end=":")
             task.status()
 
-    def get_subtask(self, subtask_name: str) -> SimpleTask:
+    def get_subtask(self, task_id: str) -> SimpleTask:
         for task in self.tasks:
-            if task.name == subtask_name:
+            main_name, task_id_subtask = task.name.split(":", 1)
+            if task_id_subtask == task_id:
                 return task
         return None
 

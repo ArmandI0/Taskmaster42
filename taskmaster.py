@@ -1,5 +1,4 @@
 import argparse
-import Supervisor
 from Supervisor import Supervisor
 from shell import run_shell
 from threading import Thread, Event
