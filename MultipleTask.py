@@ -61,3 +61,6 @@ class MultiTask(Task):
 
     def get_subtask_names(self) -> List[str]:
         return [task.name for task in self.tasks]
+
+    def get_all_tasks(self) -> List[SimpleTask]:
+        return self.tasks

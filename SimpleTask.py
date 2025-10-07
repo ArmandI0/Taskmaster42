@@ -1,12 +1,14 @@
 import subprocess
-from validate import validate_task_config
 import signal
 import time
-from datetime import timedelta
 import os
-from enum 	import Enum, auto
-from _io	import TextIOWrapper
 import logging
+from validate   import validate_task_config
+from datetime   import timedelta
+from enum 	    import Enum, auto
+from _io	    import TextIOWrapper
+from typing     import List
+
 
 TICK_RATE = 0.5
 
@@ -230,4 +232,6 @@ class SimpleTask:
             else:
                 buffer += f"Not started"
         print(buffer)
-        
+
+    def get_all_tasks(self) -> List['SimpleTask']:
+        return [self]
