@@ -1,6 +1,6 @@
 programs:
-  toto:
-    cmd: "sleep 10000"
+  web:
+    cmd: "python3 server.py"
     numprocs: 10
     umask: "022"
     autostart: true
@@ -28,3 +28,7 @@ programs:
     stdout: hello-web.out
     stderr: hello-web.err
     workingdir: test_programs
+    env:
+      CONTENT: "hello-web"
+      PORT: "8081"
+

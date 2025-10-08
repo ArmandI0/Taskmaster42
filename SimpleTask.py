@@ -98,13 +98,27 @@ class SimpleTask(Task):
 
         if self.stdout is not None:
             self.stdout_file = self.open_with_umask(self.stdout)
+        else:
+            self.stdout_file = open(os.devnull, "w")
+
         if self.stderr is not None:
             self.stderr_file = self.open_with_umask(self.stderr)
+        else:
+            self.stderr_file = open(os.devnull, "w")
 
         self.processus_time_start = time.time()
         self.processus_status = State.STARTING
+
         try:
-            self.process = subprocess.Popen(self.cmd, stdout=self.stdout_file, stderr=self.stderr_file, text=True, cwd=self.workingdir, start_new_session=True)
+            self.process = subprocess.Popen(
+                self.cmd,
+                stdout=self.stdout_file,
+                stderr=self.stderr_file,
+                text=True,
+                cwd=self.workingdir,
+                env=self.env,
+                start_new_session=True
+            )
             logging.info(f"{self.name} starting")
             return {"success": [self], "errors": []}
 

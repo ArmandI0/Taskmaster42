@@ -1,9 +1,13 @@
 import os
 import signal
+import re
 
 def validate_task_config(name, config):
+    validated_env = validate_env(name, config, {})
+    merged_env = {**os.environ, **validated_env}
+
     return {
-        "name": name,
+        "name": validate_name(name, config),
         "cmd": validate_cmd(name, config),
         "numprocs": validate_numprocs(name, config, 1),
         "umask": validate_umask(name, config, "022"),
@@ -17,11 +21,25 @@ def validate_task_config(name, config):
         "stoptime": validate_positive_int(name, config, "stoptime", 10),
         "stdout": validate_output_file(name, config, "stdout"),
         "stderr": validate_output_file(name, config, "stderr"),
-        "env": validate_env(name, config, {})
+        "env": merged_env,
     }
 
 def err(name, msg):
     raise ValueError(f"Task '{name}': {msg}")
+
+def validate_name(name, config):
+    if not isinstance(name, str) or not name.strip():
+        err(name, "'name' is required and must be a non-empty string.")
+    
+    name = name.strip()
+    
+    if name.lower() == "all":
+        err(name, "Banned name: 'all'.")
+
+    if not re.match(r'^[A-Za-z0-9]+$', name):
+        err(name, "Invalid name. Only letters and digits are allowed (A–Z, a–z, 0–9).")
+
+    return name
 
 def validate_cmd(name, config):
     cmd = config.get("cmd")
@@ -37,19 +55,14 @@ def validate_numprocs(name, config, default):
 
 def validate_umask(name, config, default):
     umask = config.get("umask", default)
-
     if not isinstance(umask, str) or not umask.strip():
         err(name, "umask must be a non-empty string like '022'")
-
     if not umask.isdigit() or len(umask) not in (3, 4):
         err(name, "umask must be a string of 3 or 4 digits like '022'")
-
     for digit in umask:
         if digit not in "01234567":
             err(name, f"invalid umask digit '{digit}' in '{umask}'")
-
     return umask
-
 
 def validate_workingdir(name, config, default):
     workingdir = config.get("workingdir", default)
