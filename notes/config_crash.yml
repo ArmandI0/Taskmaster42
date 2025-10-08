@@ -9,7 +9,7 @@
 # /bin/bash: /app/test_supervisor/programmes/ignore_SIGHUP.sh: No such file or directory
 
 #Charger un environnement
-
+programs:
   test_my_stop_signal:
     cmd: "/bin/bosh /app/test_supervisor/programmes/ignore_SIGHUP.sh"
     numprocs: 1   

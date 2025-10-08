@@ -1,5 +1,6 @@
 import os
 import signal
+import re
 
 def validate_task_config(name, config):
     validated_env = validate_env(name, config, {})
@@ -27,9 +28,18 @@ def err(name, msg):
     raise ValueError(f"Task '{name}': {msg}")
 
 def validate_name(name, config):
-    if not isinstance(name, str) or not name.strip() or name.strip() == "all":
-        err(name, "'name' is required and must be a non-empty string. Banned name: 'all'.")
-    return name.strip()
+    if not isinstance(name, str) or not name.strip():
+        err(name, "'name' is required and must be a non-empty string.")
+    
+    name = name.strip()
+    
+    if name.lower() == "all":
+        err(name, "Banned name: 'all'.")
+
+    if not re.match(r'^[A-Za-z0-9]+$', name):
+        err(name, "Invalid name. Only letters and digits are allowed (A–Z, a–z, 0–9).")
+
+    return name
 
 def validate_cmd(name, config):
     cmd = config.get("cmd")
