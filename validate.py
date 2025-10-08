@@ -36,8 +36,8 @@ def validate_name(name, config):
     if name.lower() == "all":
         err(name, "Banned name: 'all'.")
 
-    if not re.match(r'^[A-Za-z0-9]+$', name):
-        err(name, "Invalid name. Only letters and digits are allowed (A–Z, a–z, 0–9).")
+    # if not re.match(r'^[A-Za-z0-9]+$', name):
+    #     err(name, "Invalid name. Only letters and digits are allowed (A–Z, a–z, 0–9).")
 
     return name
 
