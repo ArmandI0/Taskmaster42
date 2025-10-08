@@ -175,7 +175,7 @@ class Supervisor:
         # Stop process delete from config
         if not self.new_processus_list == {}:
             for name, processus in self.processus_list.items():
-                if name not in self.new_processus_list and processus.s:
+                if name not in self.new_processus_list:
                     processus.stop()
 
             # Stop process 

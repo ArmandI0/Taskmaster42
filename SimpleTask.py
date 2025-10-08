@@ -207,7 +207,8 @@ class SimpleTask(Task):
         if self.process is None:
             self.processus_status = State.STOPPED
             return {"success": [], "errors": [self]}
-
+        # Set new stoptime 
+        self.stoptime = 2 
         self.process.send_signal(signal.SIGTERM)
         if self.process.poll() is not None:
             self.processus_status = State.STOPPED
