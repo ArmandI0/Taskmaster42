@@ -24,15 +24,9 @@ class MultiTask(Task):
         }
         for task in self.tasks:
             result = task.start()
-            # Register return value for the Supervisor part
-            if result == 0:
-                results["success"].append(task.name) 
-            else:
-                results["errors"].append(task.name)
-        if results["success"]:
-            return 0
-        else:
-            return 1
+            results["success"].extend(result["success"])
+            results["errors"].extend(result["errors"])
+        return results
 
     def stop(self):
         results = {
@@ -41,10 +35,8 @@ class MultiTask(Task):
         }
         for task in self.tasks:
             result = task.stop()
-            if result == 0:
-                results["success"].append(task.name) 
-            else:
-                results["errors"].append(task.name)
+            results["success"].extend(result["success"])
+            results["errors"].extend(result["errors"])
         return results
 
     def supervise(self):
@@ -55,6 +47,17 @@ class MultiTask(Task):
         for task in self.tasks:
             task.status()
 
+    def shutdown(self):
+        results = {
+            "success": [],
+            "errors": []
+        }
+        for task in self.tasks:
+            result = task.shutdown()
+            results["success"].extend(result["success"])
+            results["errors"].extend(result["errors"])
+        return results
+
     def get_subtask(self, task_id: str) -> SimpleTask:
         for task in self.tasks:
             main_name, task_id_subtask = task.name.split(":", 1)
@@ -64,6 +67,3 @@ class MultiTask(Task):
 
     def get_subtask_names(self) -> List[str]:
         return [task.name for task in self.tasks]
-
-    def get_all_tasks(self) -> List[SimpleTask]:
-        return self.tasks

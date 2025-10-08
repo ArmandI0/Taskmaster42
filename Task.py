@@ -25,6 +25,6 @@ class Task(ABC):
     
     @abstractmethod
     def status(self): pass
-    
+
     @abstractmethod
-    def get_all_tasks(self): pass
+    def shutdown(self): pass

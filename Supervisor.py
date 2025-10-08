@@ -81,13 +81,12 @@ class Supervisor:
                         tasks_to_start.append(task)
             
             for task in tasks_to_start:
-                result = task.start()
-                if result == 0:
-                    waiting_list_of_starting_processus.extend(task.get_all_tasks())
+                results = task.start()
+                waiting_list_of_starting_processus.extend(results["success"])
 
         while waiting_list_of_starting_processus:
             with self.lock:
-                for processus in waiting_list_of_starting_processus[:]:
+                for processus in waiting_list_of_starting_processus:
                     if processus.processus_status in [State.RUNNING, State.BACKOFF]:
                         print(f"{processus.name} : started")
                         waiting_list_of_starting_processus.remove(processus)
@@ -115,8 +114,8 @@ class Supervisor:
                         tasks_to_stop.append(task)
             
             for task in tasks_to_stop:
-                task.stop()
-                waiting_list_of_processus_to_stop.extend(task.get_all_tasks())
+                results = task.stop()
+                waiting_list_of_processus_to_stop.extend(results["success"])
 
         while waiting_list_of_processus_to_stop:
             with self.lock:
@@ -216,27 +215,26 @@ class Supervisor:
             if all:
                 for processus in self.processus_list.values():
                     processus.status()
-                else:
-                    for full_name in processus_names:
-                        task = self._get_task_by_full_name(full_name)
-                        if task is None:
-                            print(f"{full_name} : ERROR (no such process)")
-                        else:
-                            task.status()
+            else:
+                for full_name in processus_names:
+                    task = self._get_task_by_full_name(full_name)
+                    if task is None:
+                        print(f"{full_name} : ERROR (no such process)")
+                    else:
+                        task.status()
     
-    def shutdown(self):
-        processus_to_stop: List[Task] = []
-        with self.lock:
-            for processus in self.processus_list.values():
-                if processus.processus_status not in STOPPED_STATES:
-                    processus.stop()
-                    processus_to_stop.append(processus)
 
-        while processus_to_stop:
+    def shutdown(self):
+        waiting_list_of_processus_to_shutdown = []
+        
+        with self.lock:
+
+            for task in self.processus_list.values():
+                results = task.shutdown()
+                waiting_list_of_processus_to_shutdown.extend(results["success"])
+
+        while waiting_list_of_processus_to_shutdown:
             with self.lock:
-                for processus in processus_to_stop:
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL]:
-                        print(f"{processus.name} : stopped")
-                        processus_to_stop.remove(processus)
-                    
-            time.sleep(TICK_RATE)
+                for processus in waiting_list_of_processus_to_shutdown:
+                    if processus.processus_status in STOPPED_STATES:
+                        waiting_list_of_processus_to_shutdown.remove(processus)

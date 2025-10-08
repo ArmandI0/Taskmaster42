@@ -95,7 +95,7 @@ class SimpleTask(Task):
     def start(self):
         if self.processus_status in RUNNING_STATES: # If process is already started or in starting progress
             print(f"{self.name} : ERROR (already started)")
-            return 1
+            return {"success": [], "errors": [self]}
 
         if self.stdout is not None:
             self.stdout_file = self.open_with_umask(self.stdout)
@@ -107,16 +107,17 @@ class SimpleTask(Task):
         try:
             self.process = subprocess.Popen(self.cmd, stdout=self.stdout_file, stderr=self.stderr_file, text=True, cwd=self.workingdir, start_new_session=True)
             logging.info(f"{self.name} starting")
-            return 0
+            return {"success": [self], "errors": []}
+
         except Exception as e:
             logging.error(f"{self.name} fatal : {e}")
             self.processus_status = State.FATAL
-            return 1
-
+            return {"success": [], "errors": [self]}
+    
     def stop(self):
         if self.processus_status in STOPPED_STATES:
             print(f"{self.name} : ERROR (not running)") 
-            return 1
+            return {"success": [], "errors": [self]}
 
         signals = {
             "TERM": signal.SIGTERM,
@@ -130,8 +131,7 @@ class SimpleTask(Task):
         sig = signals.get(self.stopsignal)
         if self.process is None:
             self.processus_status = State.STOPPED
-            return 1
-
+            return {"success": [], "errors": [self]}
         self.process.send_signal(sig)
         if self.process.poll() is not None:
             self.processus_status = State.STOPPED
@@ -141,7 +141,7 @@ class SimpleTask(Task):
             self.processus_time_stop = time.time()
             self.processus_status = State.STOPPING
             logging.info(f"{self.name} stopping")
-        return 0
+        return {"success": [self], "errors": []}
 
     def supervise(self):
         if self.process is not None:
@@ -161,7 +161,6 @@ class SimpleTask(Task):
                     self.processus_status = State.RUNNING
                     logging.info(f"{self.name} running")
             elif self.processus_status == State.BACKOFF:
-                time.sleep(0.5)
                 self.start()
             elif self.processus_status == State.RUNNING:
                 if poll_state is not None:
@@ -202,5 +201,21 @@ class SimpleTask(Task):
                 buffer += f"Not started"
         print(buffer)
 
-    def get_all_tasks(self) -> List['SimpleTask']:
-        return [self]
+    def shutdown(self):
+        if self.processus_status in STOPPED_STATES:
+            return {"success": [], "errors": [self]}
+
+        if self.process is None:
+            self.processus_status = State.STOPPED
+            return {"success": [], "errors": [self]}
+
+        self.process.send_signal(signal.SIGTERM)
+        if self.process.poll() is not None:
+            self.processus_status = State.STOPPED
+            logging.info(f"{self.name} shutdown complete")
+            self.close_redir()
+        else:
+            self.processus_time_stop = time.time()
+            self.processus_status = State.STOPPING
+            logging.info(f"{self.name} shutting down")
+        return {"success": [self], "errors": []}
