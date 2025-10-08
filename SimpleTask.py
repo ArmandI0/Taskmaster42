@@ -7,8 +7,7 @@ from Task       import Task
 from validate   import validate_task_config
 from datetime   import timedelta
 from _io	    import TextIOWrapper
-from typing     import List
-from State      import State, RUNNING_STATES, STOPPED_STATES, SIGNALLABLE_STATES
+from State      import State, RUNNING_STATES, STOPPED_STATES
 
 TICK_RATE = 0.5
 

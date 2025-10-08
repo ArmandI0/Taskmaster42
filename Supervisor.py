@@ -5,7 +5,7 @@ from typing     	import Dict, List
 from threading  	import Lock, Event
 from Task			import Task
 from MultipleTask   import MultiTask
-from State          import State, RUNNING_STATES, STOPPED_STATES, SIGNALLABLE_STATES
+from State          import State, STOPPED_STATES 
 
 
 TICK_RATE = 0.5
@@ -15,7 +15,7 @@ class Supervisor:
         self.processus_list: Dict[str, Task] = {}
         self.lock = Lock()
         self.path_to_config = None
-        self.new_processus_list: Dict[str, Task] = {} # Quand j'update je dois regarder si les taches sont presents dans la nouvelles liste avant de les stops
+        self.new_processus_list: Dict[str, Task] = {}
         self.new_processus_to_start: Dict[str, Task] = {}
         self.old_processus_to_stop: List = []
 
@@ -63,7 +63,6 @@ class Supervisor:
                 print(f"Error in task '{name}': {e}")
                 sys.exit(1)
 
-    # Start attend que tous les programmes change d'etat RUNNING au  moins une fois pass a -> BACKOFF, FATAL ou RUNNING
     def start(self, processus_names: List[str] = None, all: bool = None):
         """Start and wait for processes to start"""
         waiting_list_of_starting_processus = []
@@ -96,8 +95,6 @@ class Supervisor:
             time.sleep(TICK_RATE)
         
 
-    # la commande interagie avec les etats RUNNING STARTING et BACKOFF
-    # Gerer les retours si bad processsu name dans le parsing Shell
     def stop(self, processus_names: List[str] = None, all: bool = None):
         waiting_list_of_processus_to_stop = []
         tasks_to_stop = []
@@ -147,7 +144,6 @@ class Supervisor:
         for name, config in config_data["programs"].items():
             try:
                 if name in self.processus_list:
-                    # print(f"config {config}\n raw : {self.processus_list[name].raw_config}")
                     if config == self.processus_list[name].raw_config:
                         self.new_processus_list[name] = self.processus_list[name]
                     else:
@@ -157,10 +153,9 @@ class Supervisor:
                         self.new_processus_list[name] = task
                         self.new_processus_to_start[name] = task
                         self.new_processus_list[name].raw_config = config
-                        self.processus_list[name].raw_config = config       # On configure aussi la config lié au processus actuel
+                        self.processus_list[name].raw_config = config
                         modification = True
                         print(f"{name}: changed")
-                        # print(f"updated Task: {task.raw_config}")
                 else:
                     task = Task.create(name, config)
                     self.new_processus_list[name] = task
@@ -177,17 +172,17 @@ class Supervisor:
     def update(self):
         autostart = []
 
-        # Stop des processus supprimé dans la config
+        # Stop process delete from config
         if not self.new_processus_list == {}:
             for name, processus in self.processus_list.items():
-                if name not in self.new_processus_list:
+                if name not in self.new_processus_list and processus.s:
                     processus.stop()
 
-            # Stop des processus qui qui sont supprimé de la config
-            if not self.old_processus_to_stop == []:
-                self.stop(self.old_processus_to_stop)
+            # Stop process 
+            if self.old_processus_to_stop:
+                self.stop(self.old_processus_to_stop)   
 
-            # Autostart des nouveau processus ou process modifé
+            # Autostart of ew process
             for name, new_processus in self.new_processus_to_start.items():
                 if new_processus.autostart == True:
                     autostart.append(name)
