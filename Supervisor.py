@@ -1,9 +1,12 @@
 import yaml
 import sys
 import time
-from task       import Task, State
-from typing     import Dict, List
-from threading  import Lock, Event
+from typing     	import Dict, List
+from threading  	import Lock, Event
+from Task			import Task
+from MultipleTask   import MultiTask
+from State          import State, STOPPED_STATES 
+
 
 TICK_RATE = 0.5
 
@@ -12,11 +15,30 @@ class Supervisor:
         self.processus_list: Dict[str, Task] = {}
         self.lock = Lock()
         self.path_to_config = None
-        self.new_processus_list: Dict[str, Task] = {} # Quand j'update je dois regarder si les taches sont presents dans la nouvelles liste avant de les stops
+        self.new_processus_list: Dict[str, Task] = {}
         self.new_processus_to_start: Dict[str, Task] = {}
         self.old_processus_to_stop: List = []
 
+    def _get_task_by_full_name(self, full_name: str):
+        """
+            Returns the task for Multiple or Simple Task
+        """
+        if ":" in full_name:
+            main_name, task_id = full_name.split(":", 1)
+            if main_name in self.processus_list:
+                task = self.processus_list[main_name]
+                if isinstance(task, MultiTask):
+                    return task.get_subtask(task_id)
+                return None
+        else:
+            if full_name in self.processus_list:
+                return self.processus_list[full_name]
+        return None
+
     def load_config(self, path_to_config: str):
+        """
+            Load Config and create Task instance for each program
+        """
         try:
             with open(path_to_config, 'r') as file:
                 config_data = yaml.safe_load(file)
@@ -34,72 +56,70 @@ class Supervisor:
         self.path_to_config = path_to_config
         for name, config in config_data["programs"].items():
             try:
-                task = Task.create(name, config)
+                task = Task.create(name, config)  # Utiliser la factory
                 task.raw_config = config
                 self.processus_list[name] = task
             except Exception as e:
                 print(f"Error in task '{name}': {e}")
                 sys.exit(1)
 
-    # Start attend que tous les programmes change d'etat RUNNING au  moins une fois pass a -> BACKOFF, FATAL ou RUNNING
     def start(self, processus_names: List[str] = None, all: bool = None):
-        processus_to_start: List[Task] = []
+        """Start and wait for processes to start"""
+        waiting_list_of_starting_processus = []
+        tasks_to_start = []
+        
         with self.lock:
-            if all == True:
-                for processus in self.processus_list.values():
-                    if processus.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
-                        print(f"{processus.name} : ERROR (already started)")
-                    else:
-                        processus.start()
-                        processus_to_start.append(processus)
+            if all:
+                tasks_to_start = list(self.processus_list.values())
             else:
-                for processus_name in processus_names:
-                    if processus_name not in self.processus_list:
-                        print(f"{processus_name} : ERROR (no such process)")
-                    elif self.processus_list[processus_name].processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
-                        print(f"{processus_name} : ERROR (already started)")
+                for full_name in processus_names:
+                    task = self._get_task_by_full_name(full_name)
+                    if task is None:
+                        print(f"{full_name} : ERROR (no such process)")
                     else:
-                        self.processus_list[processus_name].start()
-                        processus_to_start.append(self.processus_list[processus_name])
+                        tasks_to_start.append(task)
+            
+            for task in tasks_to_start:
+                results = task.start()
+                waiting_list_of_starting_processus.extend(results["success"])
 
-        while processus_to_start:
+        while waiting_list_of_starting_processus:
             with self.lock:
-                for processus in processus_to_start:
-                    if processus.processus_status in [State.RUNNING, State.BACKOFF, State.STARTING]:
+                for processus in waiting_list_of_starting_processus:
+                    if processus.processus_status in [State.RUNNING, State.BACKOFF]:
                         print(f"{processus.name} : started")
-                        processus_to_start.remove(processus)
+                        waiting_list_of_starting_processus.remove(processus)
+                    elif processus.processus_status in STOPPED_STATES:
+                        print(f"{processus.name} : ERROR (spawn error)")
+                        waiting_list_of_starting_processus.remove(processus)
             time.sleep(TICK_RATE)
-    
+        
 
-    # la commande interagie avec les etats RUNNING STARTING et BACKOFF
-    # Gerer les retours si bad processsu name dans le parsing Shell
     def stop(self, processus_names: List[str] = None, all: bool = None):
-        processus_to_stop: List[Task] = []
+        waiting_list_of_processus_to_stop = []
+        tasks_to_stop = []
+        
         with self.lock:
-            if all == True:
-                for processus in self.processus_list.values():
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                        print(f"{processus.name} : ERROR (not running)") 
-                    else:
-                        processus.stop()
-                        processus_to_stop.append(processus)
+            if all:
+                tasks_to_stop = list(self.processus_list.values())
             else:
-                for processus_name in processus_names:
-                    if processus_name not in self.processus_list:
-                        print(f"{processus_name} : ERROR (no such process)")
-                    elif self.processus_list[processus_name].processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                        print(f"{processus_name} : ERROR (not running)") 
+                for full_name in processus_names:
+                    task = self._get_task_by_full_name(full_name)
+                    if task is None:
+                        print(f"{full_name} : ERROR (no such process)")
                     else:
-                        self.processus_list[processus_name].stop()
-                        processus_to_stop.append(self.processus_list[processus_name])
-        while processus_to_stop:
-            with self.lock:
-                for processus in processus_to_stop:
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL]:
-                        print(f"{processus.name} : stopped")
-                        processus_to_stop.remove(processus)
-            time.sleep(TICK_RATE)
+                        tasks_to_stop.append(task)
+            
+            for task in tasks_to_stop:
+                results = task.stop()
+                waiting_list_of_processus_to_stop.extend(results["success"])
 
+        while waiting_list_of_processus_to_stop:
+            with self.lock:
+                for processus in waiting_list_of_processus_to_stop:
+                    if processus.processus_status in STOPPED_STATES:
+                        print(f"{processus.name} : stopped")
+                        waiting_list_of_processus_to_stop.remove(processus)            
 
     def restart(self, processus_names: List[str] = None, all: bool = None):
         self.stop(processus_names, all)
@@ -124,7 +144,6 @@ class Supervisor:
         for name, config in config_data["programs"].items():
             try:
                 if name in self.processus_list:
-                    # print(f"config {config}\n raw : {self.processus_list[name].raw_config}")
                     if config == self.processus_list[name].raw_config:
                         self.new_processus_list[name] = self.processus_list[name]
                     else:
@@ -134,10 +153,9 @@ class Supervisor:
                         self.new_processus_list[name] = task
                         self.new_processus_to_start[name] = task
                         self.new_processus_list[name].raw_config = config
-                        self.processus_list[name].raw_config = config       # On configure aussi la config lié au processus actuel
+                        self.processus_list[name].raw_config = config
                         modification = True
                         print(f"{name}: changed")
-                        # print(f"updated Task: {task.raw_config}")
                 else:
                     task = Task.create(name, config)
                     self.new_processus_list[name] = task
@@ -154,17 +172,17 @@ class Supervisor:
     def update(self):
         autostart = []
 
-        # Stop des processus supprimé dans la config
+        # Stop process delete from config
         if not self.new_processus_list == {}:
             for name, processus in self.processus_list.items():
                 if name not in self.new_processus_list:
                     processus.stop()
 
-            # Stop des processus qui qui sont supprimé de la config
-            if not self.old_processus_to_stop == []:
-                self.stop(self.old_processus_to_stop)
+            # Stop process 
+            if self.old_processus_to_stop:
+                self.stop(self.old_processus_to_stop)   
 
-            # Autostart des nouveau processus ou process modifé
+            # Autostart of ew process
             for name, new_processus in self.new_processus_to_start.items():
                 if new_processus.autostart == True:
                     autostart.append(name)
@@ -188,40 +206,30 @@ class Supervisor:
 
 
     def status(self, processus_names: list[str] = None, all: bool = None):
-        if all:
-            for name, processus in self.processus_list.items():
-                if processus.processus_status is None:
-                    print(f"{name:<32}UNKNOWN")
-                else:
-                    print(processus.status())
-        else:
-            if not processus_names:
-                print("No process names provided")
-                return
-            for name in processus_names:
-                processus = self.processus_list.get(name)
-                if processus is None:
-                    print(f"{name} : ERROR (no such process)")
-                elif processus.processus_status is None:
-                    print(f"{name:<32}UNKNOWN")
-                else:
-                    print(processus.status())
-
-
-    
-    def shutdown(self):
-        processus_to_stop: List[Task] = []
         with self.lock:
-            for processus in self.processus_list.values():
-                if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL, State.NEVER_STARTED]:
-                    pass 
-                else:
-                    processus.stop()
-                    processus_to_stop.append(processus)
-        while processus_to_stop:
+            if all:
+                for processus in self.processus_list.values():
+                    processus.status()
+            else:
+                for full_name in processus_names:
+                    task = self._get_task_by_full_name(full_name)
+                    if task is None:
+                        print(f"{full_name} : ERROR (no such process)")
+                    else:
+                        task.status()
+    
+
+    def shutdown(self):
+        waiting_list_of_processus_to_shutdown = []
+        
+        with self.lock:
+
+            for task in self.processus_list.values():
+                results = task.shutdown()
+                waiting_list_of_processus_to_shutdown.extend(results["success"])
+
+        while waiting_list_of_processus_to_shutdown:
             with self.lock:
-                for processus in processus_to_stop:
-                    if processus.processus_status in [State.EXITED, State.STOPPED, State.FATAL]:
-                        print(f"{processus.name} : stopped")
-                        processus_to_stop.remove(processus)
-            time.sleep(TICK_RATE)
+                for processus in waiting_list_of_processus_to_shutdown:
+                    if processus.processus_status in STOPPED_STATES:
+                        waiting_list_of_processus_to_shutdown.remove(processus)
