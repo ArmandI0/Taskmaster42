@@ -1,0 +1,15 @@
+programs:
+  web:
+    cmd: "./random/python3 server.py"
+    numprocs: 10
+    umask: "022"
+    autostart: true
+    autorestart: false
+    exitcodes: [0]
+    startretries: 1
+    starttime: 1
+    stopsignal: 1
+    stoptime: 6
+    stdout: web.out
+    stderr: web.err
+    workingdir: test_programs

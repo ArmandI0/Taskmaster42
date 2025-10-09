@@ -1,0 +1,15 @@
+programs:
+    cmd: "python3 server.py"
+    numprocs: 10
+    umask: "022"
+    autostart: true
+    autorestart: false
+    exitcodes: [0]
+    startretries: 0
+    starttime: 1
+    stopsignal: TERM
+    stoptime: 6
+    stdout: hello-web.out
+    stderr: hello-web.err
+    workingdir: test_programs
+

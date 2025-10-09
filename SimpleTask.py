@@ -82,36 +82,33 @@ class SimpleTask(Task):
             self.stderr_file.close()
             self.stderr_file = None   
 
-    def open_with_umask(self, path):
-        umask = int(self.umask, 8)
-        old_umask = os.umask(umask)
-
-        if os.path.exists(path):
-            os.remove(path)
-
-        file = open(path, "w")
-        os.umask(old_umask)
-        return file
+    def open(self, path):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+            return open(path, "w")
+        except (OSError, IOError, PermissionError) as e:
+            raise RuntimeError(f"Failed to open log file '{path}': {e}")
 
     def start(self):
-        if self.processus_status in [State.STARTING, State.RUNNING]: # If process is already started or in starting progress
-            print(f"{self.name} : ERROR (already started)")
-            return {"success": [], "errors": [self]}
-
-        if self.stdout is not None:
-            self.stdout_file = self.open_with_umask(self.stdout)
-        else:
-            self.stdout_file = open(os.devnull, "w")
-
-        if self.stderr is not None:
-            self.stderr_file = self.open_with_umask(self.stderr)
-        else:
-            self.stderr_file = open(os.devnull, "w")
-
-        self.processus_time_start = time.time()
-        self.processus_status = State.STARTING
-
         try:
+            if self.processus_status in [State.STARTING, State.RUNNING]:
+                print(f"{self.name} : ERROR (already started)")
+                return {"success": [], "errors": [self]}
+
+            if self.stdout is not None:
+                self.stdout_file = self.open(self.stdout)
+            else:
+                self.stdout_file = open(os.devnull, "w")
+
+            if self.stderr is not None:
+                self.stderr_file = self.open(self.stderr)
+            else:
+                self.stderr_file = open(os.devnull, "w")
+
+            self.processus_time_start = time.time()
+            self.processus_status = State.STARTING
+
             self.process = subprocess.Popen(
                 self.cmd,
                 stdout=self.stdout_file,
@@ -119,7 +116,8 @@ class SimpleTask(Task):
                 text=True,
                 cwd=self.workingdir,
                 env=self.env,
-                start_new_session=True
+                start_new_session=True,
+                umask=int(self.umask, 8)
             )
             logging.info(f"{self.name} starting")
             return {"success": [self], "errors": []}

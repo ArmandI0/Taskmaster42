@@ -36,9 +36,6 @@ class Supervisor:
         return None
 
     def load_config(self, path_to_config: str):
-        """
-            Load Config and create Task instance for each program
-        """
         try:
             with open(path_to_config, 'r') as file:
                 config_data = yaml.safe_load(file)
@@ -50,11 +47,15 @@ class Supervisor:
             sys.exit(1)
 
         if not isinstance(config_data, dict) or "programs" not in config_data:
-            print("Error : configuration file must have a section programs:")
+            print("Error : configuration file must have a section 'programs:'")
             sys.exit(1)
 
         self.path_to_config = path_to_config
+
         for name, config in config_data["programs"].items():
+            if ":" in name:
+                print(f"Error: invalid program name '{name}'. ':' is not allowed in program names.")
+                sys.exit(1)
             try:
                 task = Task.create(name, config)  # Utiliser la factory
                 task.raw_config = config

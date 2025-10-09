@@ -1,4 +1,5 @@
 from abc            import ABC, abstractmethod
+from validate       import validate_numprocs
 
 class Task(ABC):
     """Abstract Method for Multiple and Simple Task"""
@@ -8,7 +9,7 @@ class Task(ABC):
         # Import in method to avoid circular inclusion
         from MultipleTask   import MultiTask
         from SimpleTask     import SimpleTask
-        numprocs = raw_config.get("numprocs", 1)
+        numprocs = validate_numprocs(name, raw_config)
         if numprocs > 1:
             return MultiTask(name, raw_config)
         else:
