@@ -10,7 +10,7 @@ class HelloHandler(BaseHTTPRequestHandler):
         self.wfile.write(content.encode("utf-8"))
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8080"))
+    port = int("8080")
     server_address = ("", port)
     httpd = HTTPServer(server_address, HelloHandler)
     print(f"Serveur lancé sur http://localhost:{port}")

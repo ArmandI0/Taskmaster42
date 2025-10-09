@@ -1,0 +1,9 @@
+programs:
+
+  permission_test:
+    cmd: /bin/sh -c '/bin/sleep 2; exit 1'
+    numprocs: 1
+    autostart: true
+    umask: "077"
+    stdout: /tmp/permission_test.out
+    stderr: /tmp/permission_test.err

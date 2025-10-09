@@ -3,7 +3,8 @@ programs:
     cmd: "python3 server.py"
     numprocs: 1
     umask: "022"
-    autostart: true
+    workingdir: /tmp
+    autostart: false
     autorestart: false
     exitcodes: [0]
     startretries: 0
@@ -32,3 +33,17 @@ programs:
       CONTENT: "hello-web"
       PORT: "8081"
 
+  test1:
+    cmd: "sleep 10"
+    numprocs: 2
+    umask: "022"
+    workingdir: /tmp
+    autostart: false
+    autorestart: false
+    exitcodes: [0, 1]
+    startretries: 2
+    starttime: 10
+    stopsignal: TERM
+    stoptime: 6
+    stdout: /dev/null
+    stderr: /tmp/stderr_echo
