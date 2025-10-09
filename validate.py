@@ -1,5 +1,6 @@
 import os
 import signal
+import shlex
 import re
 
 def validate_task_config(name, config):
@@ -36,16 +37,17 @@ def validate_name(name, config):
     if name.lower() == "all":
         err(name, "Banned name: 'all'.")
 
-    # if not re.match(r'^[A-Za-z0-9]+$', name):
-    #     err(name, "Invalid name. Only letters and digits are allowed (A–Z, a–z, 0–9).")
-
     return name
 
 def validate_cmd(name, config):
     cmd = config.get("cmd")
     if not isinstance(cmd, str) or not cmd.strip():
         err(name, "'cmd' is required and must be a non-empty string.")
-    return cmd.strip().split()
+    try:
+        return shlex.split(cmd.strip())
+    except ValueError as e:
+        err(name, f"Invalid command syntax: {e}")
+
 
 def validate_numprocs(name, config, default = 1):
     numprocs = config.get("numprocs", default)
