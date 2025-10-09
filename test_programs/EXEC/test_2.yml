@@ -1,0 +1,57 @@
+programs:
+  # Test 1: Redémarrage automatique
+  # On utilise le chemin absolu /usr/bin/false, la commande standard pour un programme qui échoue.
+  failing_process:
+    cmd: "/usr/bin/false"
+    numprocs: 1
+    autostart: true
+    autorestart: true
+    startretries: 5
+    starttime: 1
+    exitcodes: [0]
+    stdout: /tmp/failing_process.out
+    stderr: /tmp/failing_process.err
+
+  # Test 2: Ignore le signal d'arrêt
+  # Chemin absolu pour /bin/bash et commande robuste.
+  unstoppable:
+    cmd: "/bin/bash -c \"trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done\""
+    numprocs: 1
+    autostart: true
+    stopsignal: TERM
+    stoptime: 5
+    stdout: /tmp/unstoppable.out
+    stderr: /tmp/unstoppable.err
+
+  # Test 3: Variables d'environnement et workingdir
+  # Chemin absolu pour /bin/sh.
+  env_tester:
+    cmd: "/bin/sh -c '/bin/echo $CUSTOM_VAR > output.txt'"
+    numprocs: 1
+    autostart: true
+    workingdir: /tmp/taskmaster_test_dir # N'oubliez pas de créer ce dossier
+    env:
+      CUSTOM_VAR: "Ceci est un test des variables d'environnement"
+    stdout: /tmp/env_tester.out
+    stderr: /tmp/env_tester.err
+
+  # Test 4: Succès rapide
+  # Chemin absolu pour /bin/echo.
+  quick_success:
+    cmd: "/bin/echo 'Mission accomplie.'"
+    numprocs: 1
+    autostart: true
+    autorestart: false
+    starttime: 1
+    exitcodes: [0]
+    stdout: /tmp/quick_success.out
+
+  # Test 5: umask
+  # Chemin absolu pour /bin/sleep.
+  permission_test:
+    cmd: "/bin/sleep 60"
+    numprocs: 1
+    autostart: true
+    umask: "077"
+    stdout: /tmp/permission_test.out
+    stderr: /tmp/permission_test.err

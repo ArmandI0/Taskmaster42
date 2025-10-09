@@ -1,0 +1,48 @@
+programs:
+
+  # Objectif : Vérifier que Taskmaster tente de redémarrer le processus 5 fois avant de le passer à l'état FATAL.
+  # À observer : Les logs de Taskmaster devraient montrer les tentatives de redémarrage et le passage à l'état BACKOFF.
+  failing_process:
+    cmd: "/bin/sh -c 'exit 1'"
+    numprocs: 1
+    autostart: false
+    autorestart: true
+    startretries: 5
+    starttime: 1
+    exitcodes: [0]
+    stdout: /tmp/failing_process.out
+    stderr: /tmp/failing_process.err
+
+  # Objectif : S'assurer que le processus est bien terminé par un SIGKILL après l'expiration du stoptime.
+  # À observer : Lors de la commande stop unstoppable, le processus ne s'arrêtera pas immédiatement. Il sera tué après 5 secondes.
+  unstoppable:
+    cmd: "/bin/bash -c \"trap '' TERM; echo 'Signal TERM ignoré, en attente...'; sleep 30; echo 'Fin de l\\'attente.'\""
+    numprocs: 1
+    autostart: false
+    stopsignal: TERM
+    stoptime: 5
+    stdout: /tmp/unstoppable.out
+    stderr: /tmp/unstoppable.err
+
+  # Objectif : Valider que le fichier /tmp/taskmaster_test_dir/output.txt est créé et contient "Ceci est un test des variables d'environnement".
+  # Prérequis : Vous devrez créer le répertoire /tmp/taskmaster_test_dir manuellement avant de lancer le test.
+  env_tester:
+    cmd: "/bin/sh -c 'echo $CUSTOM_VAR > output.txt'"
+    numprocs: 1
+    autostart: false
+    workingdir: /tmp/taskmaster_test_dir # Assurez-vous que ce dossier existe
+    env:
+      CUSTOM_VAR: "Ceci est un test des variables d'environnement"
+    stdout: /tmp/env_tester.out
+    stderr: /tmp/env_tester.err
+  
+  # Objectif : Le processus doit passer à l'état EXITED (ou STOPPED selon votre implémentation) sans être redémarré, car son code de sortie est dans exitcodes.
+  # À observer : Le statut du processus après son exécution.
+  quick_success:
+    cmd: "/bin/echo 'Mission accomplie.'"
+    numprocs: 1
+    autostart: false
+    autorestart: false
+    starttime: 1 # Le processus se termine bien avant 1 seconde
+    exitcodes: [0]
+    stdout: /tmp/quick_success.out

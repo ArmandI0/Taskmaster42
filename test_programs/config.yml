@@ -1,34 +1,30 @@
 programs:
-  web:
-    cmd: "python3 server.py"
-    numprocs: 10
+  test2:
+    cmd: "sleep 1000"
+    numprocs: 2
     umask: "022"
-    autostart: true
+    workingdir: /tmp
+    autostart: false
     autorestart: false
-    exitcodes: [0]
-    startretries: 0
-    starttime: 1
-    stopsignal: TERM
-    stoptime: 6
-    stdout: hello-web.out
-    stderr: hello-web.err
-    workingdir: test_programs
-
-  toto32:
-    cmd: "sleep 10"
-    numprocs: 1
-    umask: "022"
-    autostart: true
-    autorestart: false
-    exitcodes: [0]
-    startretries: 0
+    exitcodes: [0, 1]
+    startretries: 2
     starttime: 10
     stopsignal: TERM
     stoptime: 6
-    stdout: hello-web.out
-    stderr: hello-web.err
-    workingdir: test_programs
-    env:
-      CONTENT: "hello-web"
-      PORT: "8081"
+    stdout: /dev/null
+    stderr: /tmp/stderr_echo
 
+  test1:
+    cmd: "sleep 10"
+    numprocs: 2
+    umask: "022"
+    workingdir: /tmp
+    autostart: false
+    autorestart: false
+    exitcodes: [0, 1]
+    startretries: 2
+    starttime: 10
+    stopsignal: TERM
+    stoptime: 6
+    stdout: /dev/null
+    stderr: /tmp/stderr_echo
