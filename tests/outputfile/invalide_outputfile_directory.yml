@@ -10,6 +10,6 @@ programs:
     starttime: 1
     stopsignal: TERM
     stoptime: 6
-    stdout: not_wrtiable.txt
+    stdout: /tmp
     stderr: web.err
     workingdir: tests
