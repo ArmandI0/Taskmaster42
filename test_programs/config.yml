@@ -1,7 +1,7 @@
 programs:
   web:
     cmd: "python3 server.py"
-    numprocs: 10
+    numprocs: 1
     umask: "022"
     autostart: true
     autorestart: false
@@ -10,12 +10,12 @@ programs:
     starttime: 1
     stopsignal: TERM
     stoptime: 6
-    stdout: hello-web.out
-    stderr: hello-web.err
+    stdout: web.out
+    stderr: web.err
     workingdir: test_programs
 
   toto32:
-    cmd: "sleep 10"
+    cmd: echo 1
     numprocs: 1
     umask: "022"
     autostart: true
@@ -25,8 +25,8 @@ programs:
     starttime: 10
     stopsignal: TERM
     stoptime: 6
-    stdout: hello-web.out
-    stderr: hello-web.err
+    stdout: toto.out
+    stderr: toto.err
     workingdir: test_programs
     env:
       CONTENT: "hello-web"

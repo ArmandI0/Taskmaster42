@@ -9,7 +9,7 @@ def validate_task_config(name, config):
     return {
         "name": validate_name(name, config),
         "cmd": validate_cmd(name, config),
-        "numprocs": validate_numprocs(name, config, 1),
+        "numprocs": validate_numprocs(name, config),
         "umask": validate_umask(name, config, "022"),
         "workingdir": validate_workingdir(name, config, os.getcwd()),
         "autostart": validate_autostart(name, config, True),
@@ -47,22 +47,37 @@ def validate_cmd(name, config):
         err(name, "'cmd' is required and must be a non-empty string.")
     return cmd.strip().split()
 
-def validate_numprocs(name, config, default):
+def validate_numprocs(name, config, default = 1):
     numprocs = config.get("numprocs", default)
     if not isinstance(numprocs, int) or numprocs < 1:
         err(name, "'numprocs' must be a positive integer.")
     return numprocs
 
-def validate_umask(name, config, default):
+def validate_umask(name, config, default="022"):
     umask = config.get("umask", default)
-    if not isinstance(umask, str) or not umask.strip():
-        err(name, "umask must be a non-empty string like '022'")
-    if not umask.isdigit() or len(umask) not in (3, 4):
-        err(name, "umask must be a string of 3 or 4 digits like '022'")
-    for digit in umask:
-        if digit not in "01234567":
-            err(name, f"invalid umask digit '{digit}' in '{umask}'")
+
+    if not isinstance(umask, str):
+        err(name, f"'umask' must be a string representing an octal value, got {type(umask).__name__}.")
+
+    if not umask:
+        err(name, "'umask' cannot be empty.")
+
+    if not all(ch in "01234567" for ch in umask):
+        err(name, f"'umask' must contain only digits 0–7, got '{umask}'.")
+
+    if len(umask) > 3:
+        err(name, f"'umask' must be at most 3 digits long, got '{umask}'.")
+
+    try:
+        umask_int = int(umask, 8)
+    except ValueError:
+        err(name, f"'umask' must be a valid octal number, got '{umask}'.")
+
+    if not (0 <= umask_int <= 0o777):
+        err(name, f"'umask' must be between 000 and 777, got '{umask}'.")
+
     return umask
+
 
 def validate_workingdir(name, config, default):
     workingdir = config.get("workingdir", default)
