@@ -82,27 +82,25 @@ class SimpleTask(Task):
             self.stderr_file.close()
             self.stderr_file = None   
 
-    def open(self, path):
-        try:
-            return open(path, "a")
-        except (OSError, IOError, PermissionError) as e:
-            raise RuntimeError(f"Failed to open log file '{path}': {e}")
-
     def start(self):
         try:
             if self.processus_status in [State.STARTING, State.RUNNING]:
                 print(f"{self.name} : ERROR (already started)")
                 return {"success": [], "errors": [self]}
+            try:
+                if self.stdout is not None:
+                    self.stdout_file = open(self.stdout, "a")
+                else:
+                    self.stdout_file = open(os.devnull, "w")
 
-            if self.stdout is not None:
-                self.stdout_file = self.open(self.stdout)
-            else:
-                self.stdout_file = open(os.devnull, "w")
-
-            if self.stderr is not None:
-                self.stderr_file = self.open(self.stderr)
-            else:
-                self.stderr_file = open(os.devnull, "w")
+                if self.stderr is not None:
+                    self.stderr_file = open(self.stderr, "a")
+                else:
+                    self.stderr_file = open(os.devnull, "w")
+            except (OSError, IOError, PermissionError) as e:
+                logging.info(f"{self.name} fatal : {e}")
+                self.processus_status = State.FATAL
+                return {"success": [], "errors": [self]}
 
             self.processus_time_start = time.time()
             self.processus_status = State.STARTING

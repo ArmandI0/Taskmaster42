@@ -1,0 +1,10 @@
+programs:
+
+  permission_test:
+    cmd: /usr/bin/mkdir toto
+    numprocs: 1
+    autostart: true
+    umask: "077"
+    stdout: /tmp/permission_test.out
+    stderr: /tmp/permission_test.err
+    workingdir: /home/aranger/Dev/repo_travail/test_programs
