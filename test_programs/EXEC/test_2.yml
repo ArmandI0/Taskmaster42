@@ -15,7 +15,7 @@ programs:
   # Test 2: Ignore le signal d'arrêt
   # Chemin absolu pour /bin/bash et commande robuste.
   unstoppable:
-    cmd: /bin/bash -c "trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done"while true; do /bin/sleep 1; done"
+    cmd: /bin/bash -c "trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done"
     autostart: true
     stopsignal: TERM
     stoptime: 5
@@ -23,7 +23,7 @@ programs:
     stderr: /tmp/unstoppable.err
 
   test2:
-    cmd: /bin/bash -c "trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done"while true; do /bin/sleep 1; done"
+    cmd: /bin/bash -c "trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done"
     autostart: true
     stopsignal: TERM
     stoptime: 5

@@ -1,0 +1,9 @@
+programs:
+  unstoppable:
+    cmd: /bin/bash -c "trap '' TERM; echo 'Signal TERM ignoré, en attente...'; while true; do /bin/sleep 1; done"
+    autostart: true
+    starttime: 10
+    stopsignal: TERM
+    stoptime: 10
+    stdout: /tmp/unstoppable.out
+    stderr: /tmp/unstoppable.err

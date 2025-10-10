@@ -221,16 +221,21 @@ class Supervisor:
     
 
     def shutdown(self):
-        waiting_list_of_processus_to_shutdown = []
-        
-        with self.lock:
-
-            for task in self.processus_list.values():
-                results = task.shutdown()
-                waiting_list_of_processus_to_shutdown.extend(results["success"])
-
-        while waiting_list_of_processus_to_shutdown:
+        try:
+            waiting_list_of_processus_to_shutdown = []
+            
             with self.lock:
-                for processus in waiting_list_of_processus_to_shutdown:
-                    if processus.processus_status in STOPPED_STATES:
-                        waiting_list_of_processus_to_shutdown.remove(processus)
+
+                for task in self.processus_list.values():
+                    results = task.shutdown()
+                    waiting_list_of_processus_to_shutdown.extend(results["success"])
+
+            while waiting_list_of_processus_to_shutdown:
+                with self.lock:
+                    for processus in waiting_list_of_processus_to_shutdown:
+                        if processus.processus_status in STOPPED_STATES:
+                            waiting_list_of_processus_to_shutdown.remove(processus)
+        except KeyboardInterrupt:
+            for processus in waiting_list_of_processus_to_shutdown:
+                processus.process.kill()
+        
