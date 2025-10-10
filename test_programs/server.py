@@ -13,5 +13,4 @@ if __name__ == "__main__":
     port = int("8080")
     server_address = ("", port)
     httpd = HTTPServer(server_address, HelloHandler)
-    print(f"Serveur lancé sur http://localhost:{port}")
     httpd.serve_forever()
