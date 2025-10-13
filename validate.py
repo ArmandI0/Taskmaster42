@@ -1,7 +1,19 @@
 import os
 import signal
 import shlex
-import re
+from enum import Enum, auto
+
+class Autorestart(Enum):
+    ALWAYS = "always"
+    NEVER = "never"
+    UNEXPECTED = "unexpected"
+
+    @classmethod
+    def from_str(cls, value):
+        try:
+            return cls(value)
+        except ValueError:
+            raise ValueError(f"Invalid autorestart value: '{value}'. Must be one of {[e.value for e in cls]}")
 
 def validate_task_config(name, config):
     validated_env = validate_env(name, config, {})
@@ -14,7 +26,7 @@ def validate_task_config(name, config):
         "umask": validate_umask(name, config, "022"),
         "workingdir": validate_workingdir(name, config, os.getcwd()),
         "autostart": validate_autostart(name, config, True),
-        "autorestart": validate_autorestart(name, config, False),
+        "autorestart": validate_autorestart(name, config, Autorestart.UNEXPECTED),
         "exitcodes": validate_exitcodes(name, config, [0]),
         "startretries": validate_positive_int(name, config, "startretries", 3),
         "starttime": validate_positive_int(name, config, "starttime", 1),
@@ -97,11 +109,12 @@ def validate_autostart(name, config, default):
         err(name, "'autostart' must be a boolean.")
     return autostart
 
-def validate_autorestart(name, config, default):
-    autorestart = config.get("autorestart", default)
-    if not isinstance(autorestart, bool):
-        err(name, "'autorestart' must be a boolean.")
-    return autorestart
+def validate_autorestart(name, config, default="unexpected"):
+    value = config.get("autorestart", default)
+    try:
+        return Autorestart.from_str(value)
+    except ValueError as e:
+        err(name, str(e))
 
 def validate_exitcodes(name, config, default):
     exitcodes = config.get("exitcodes", default)
