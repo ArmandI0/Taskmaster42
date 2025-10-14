@@ -46,7 +46,7 @@ programs:
   # Chemin absolu pour /bin/echo.
   quick_success:
     cmd: "/bin/echo 'Mission accomplie.'"
-    numprocs: 1
+    numprocs: 10
     autostart: false
     autorestart: never
     starttime: 1

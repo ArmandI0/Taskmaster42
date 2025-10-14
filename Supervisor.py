@@ -6,9 +6,11 @@ from threading  	import Lock, Event
 from Task			import Task
 from MultipleTask   import MultiTask
 from State          import State, STOPPED_STATES 
+from Quiet			import Quiet
 
 
 TICK_RATE = 0.5
+
 
 class Supervisor:
     def __init__(self):
@@ -18,6 +20,7 @@ class Supervisor:
         self.new_processus_list: Dict[str, Task] = {}
         self.new_processus_to_start: Dict[str, Task] = {}
         self.old_processus_to_stop: List = []
+        self.print_mode: Quiet = Quiet()
 
     def _get_task_by_full_name(self, full_name: str):
         """
@@ -173,10 +176,10 @@ class Supervisor:
 
     def update(self):
         autostart = []
+        self.print_mode.enable()
         # Stop process delete from config
         if not self.new_processus_list == {}:
             for name, processus in self.processus_list.items():
-                print("avant first stop")
                 if name not in self.new_processus_list:
                     processus.stop()
 
@@ -193,6 +196,7 @@ class Supervisor:
             self.new_processus_to_start = {}
             self.new_processus_list = {}
             self.start(autostart)
+            self.print_mode.disable()
 
     def supervise(self, event: Event):
         try:
@@ -238,7 +242,8 @@ class Supervisor:
                         if processus.processus_status in STOPPED_STATES:
                             waiting_list_of_processus_to_shutdown.remove(processus)
         except KeyboardInterrupt:
-            for processus in waiting_list_of_processus_to_shutdown:
-                processus.close_redir()
-                processus.process.kill()
+            # for processus in waiting_list_of_processus_to_shutdown:
+            #     processus.close_redir()
+            #     processus.process.kill()
+            return
         

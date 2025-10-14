@@ -8,9 +8,15 @@ from validate   import validate_task_config, Autorestart
 from datetime   import timedelta
 from _io	    import TextIOWrapper
 from State      import State, STOPPED_STATES
+from Quiet		import Quiet
 
 TICK_RATE = 0.5
 BACKOFF_DELAY = 2
+
+def	manage_print(message: str):
+    print_mode = Quiet()
+    if print_mode.is_enabled() == False:
+        print(message)
 
 class SimpleTask(Task):
     name: str
@@ -85,7 +91,7 @@ class SimpleTask(Task):
     def start(self):
         try:
             if self.processus_status in [State.STARTING, State.RUNNING]:
-                print(f"{self.name} : ERROR (already started)")
+                manage_print(f"{self.name} : ERROR (already started)")
                 return {"success": [], "errors": [self]}
             stdout_path = self.stdout if self.stdout is not None else os.devnull
             stderr_path = self.stderr if self.stderr is not None else os.devnull
@@ -124,7 +130,7 @@ class SimpleTask(Task):
     
     def stop(self):
         if self.processus_status in STOPPED_STATES:
-            print(f"{self.name} : ERROR (not running)") 
+            manage_print(f"{self.name} : ERROR (not running)") 
             return {"success": [], "errors": [self]}
 
         signals = {
@@ -222,7 +228,7 @@ class SimpleTask(Task):
                 buffer += f"{stop_time}"
             else:
                 buffer += f"Not started"
-        print(buffer)
+        manage_print(buffer)
 
     def shutdown(self):
         if self.processus_status in STOPPED_STATES:
