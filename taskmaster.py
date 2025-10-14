@@ -27,7 +27,8 @@ def main(args):
         monitoring.join()
     except OSError as e:
         print(f"Open failed : {e}")
-
+    except KeyboardInterrupt:
+        pass
     except Exception as e:
         print(e)
 

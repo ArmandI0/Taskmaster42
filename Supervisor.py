@@ -242,8 +242,8 @@ class Supervisor:
                         if processus.processus_status in STOPPED_STATES:
                             waiting_list_of_processus_to_shutdown.remove(processus)
         except KeyboardInterrupt:
-            # for processus in waiting_list_of_processus_to_shutdown:
-            #     processus.close_redir()
-            #     processus.process.kill()
+            for processus in waiting_list_of_processus_to_shutdown:
+                processus.close_redir()
+                processus.process.kill()
             return
         
