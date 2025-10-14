@@ -47,7 +47,7 @@ programs:
   quick_success:
     cmd: "/bin/echo 'Mission accomplie.'"
     numprocs: 1
-    autostart: true
+    autostart: false
     autorestart: never
     starttime: 1
     exitcodes: [0]

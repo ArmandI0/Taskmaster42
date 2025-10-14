@@ -7,12 +7,13 @@ class MultiTask(Task):
         self.name = name
         self.raw_config = raw_config
         self.numprocs = raw_config.get("numprocs", 1)
-
         self.tasks: List[SimpleTask] = []
 
         for i in range(self.numprocs):
             config_copy = dict(raw_config)
             task = SimpleTask.create(f"{name}:{i}", config_copy)
+            if i == 0:
+                self.autostart = task.autostart
             self.tasks.append(task)
 
     def start(self) -> dict:
