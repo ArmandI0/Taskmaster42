@@ -87,37 +87,36 @@ class SimpleTask(Task):
             if self.processus_status in [State.STARTING, State.RUNNING]:
                 print(f"{self.name} : ERROR (already started)")
                 return {"success": [], "errors": [self]}
+            stdout_path = self.stdout if self.stdout is not None else os.devnull
+            stderr_path = self.stderr if self.stderr is not None else os.devnull
             try:
-                if self.stdout is not None:
-                    self.stdout_file = open(self.stdout, "a")
-                else:
-                    self.stdout_file = open(os.devnull, "w")
+                with open(stdout_path, "a") as stdout_file, open(stderr_path, "a") as stderr_file:
+                    self.stdout_file = stdout_file
+                    self.stderr_file = stderr_file
 
-                if self.stderr is not None:
-                    self.stderr_file = open(self.stderr, "a")
-                else:
-                    self.stderr_file = open(os.devnull, "w")
+                    self.processus_time_start = time.time()
+                    self.processus_status = State.STARTING
+
+                    # To avoid modif in parent
+                    def set_child_umask():
+                        os.umask(int(self.umask, 8))
+
+                    self.process = subprocess.Popen(
+                        self.cmd,
+                        stdout=self.stdout_file,
+                        stderr=self.stderr_file,
+                        text=True,
+                        cwd=self.workingdir,
+                        env=self.env,
+                        start_new_session=True,
+                        preexec_fn=set_child_umask
+                    )
+                    logging.info(f"{self.name} starting")
+                    return {"success": [self], "errors": []}
             except (OSError, IOError, PermissionError) as e:
                 logging.info(f"{self.name} fatal : {e}")
                 self.processus_status = State.FATAL
                 return {"success": [], "errors": [self]}
-
-            self.processus_time_start = time.time()
-            self.processus_status = State.STARTING
-
-            self.process = subprocess.Popen(
-                self.cmd,
-                stdout=self.stdout_file,
-                stderr=self.stderr_file,
-                text=True,
-                cwd=self.workingdir,
-                env=self.env,
-                start_new_session=True,
-                umask=int(self.umask, 8)
-            )
-            logging.info(f"{self.name} starting")
-            return {"success": [self], "errors": []}
-
         except Exception as e:
             logging.error(f"{self.name} fatal : {e}")
             self.processus_status = State.FATAL
