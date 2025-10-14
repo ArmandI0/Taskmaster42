@@ -10,7 +10,7 @@ from _io	    import TextIOWrapper
 from State      import State, STOPPED_STATES
 
 TICK_RATE = 0.5
-BACKOFF_DELAY = 0.4
+BACKOFF_DELAY = 2
 
 class SimpleTask(Task):
     name: str

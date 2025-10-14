@@ -196,16 +196,18 @@ class Supervisor:
                 self.start(autostart)
 
     def supervise(self, event: Event):
-        with self.lock:
-            for processus in self.processus_list.values():
-                if processus.autostart == True:
-                    processus.start()
-        while not event.is_set():
+        try:
             with self.lock:
                 for processus in self.processus_list.values():
-                    processus.supervise()
-            time.sleep(TICK_RATE)
-
+                    if processus.autostart == True:
+                        processus.start()
+            while not event.is_set():
+                with self.lock:
+                    for processus in self.processus_list.values():
+                        processus.supervise()
+                time.sleep(TICK_RATE)
+        except KeyboardInterrupt:
+            return
 
     def status(self, processus_names: list[str] = None, all: bool = None):
         with self.lock:
@@ -238,5 +240,6 @@ class Supervisor:
                             waiting_list_of_processus_to_shutdown.remove(processus)
         except KeyboardInterrupt:
             for processus in waiting_list_of_processus_to_shutdown:
+                processus.close_redir()
                 processus.process.kill()
         

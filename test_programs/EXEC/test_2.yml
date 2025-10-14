@@ -5,7 +5,7 @@ programs:
     cmd: "/usr/bin/false"
     numprocs: 1
     autostart: true
-    autorestart: true
+    autorestart: always
     startretries: 5
     starttime: 1
     exitcodes: [0]
@@ -48,7 +48,7 @@ programs:
     cmd: "/bin/echo 'Mission accomplie.'"
     numprocs: 1
     autostart: true
-    autorestart: false
+    autorestart: never
     starttime: 1
     exitcodes: [0]
     stdout: /tmp/quick_success.out
