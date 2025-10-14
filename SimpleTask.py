@@ -84,9 +84,7 @@ class SimpleTask(Task):
 
     def open(self, path):
         try:
-            if os.path.exists(path):
-                os.remove(path)
-            return open(path, "w")
+            return open(path, "a")
         except (OSError, IOError, PermissionError) as e:
             raise RuntimeError(f"Failed to open log file '{path}': {e}")
 
