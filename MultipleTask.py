@@ -6,7 +6,6 @@ class MultiTask(Task):
     def __init__(self, name: str, raw_config: dict):
         self.name = name
         self.raw_config = raw_config
-        self.autostart = raw_config["autostart"]
         self.numprocs = raw_config.get("numprocs", 1)
 
         self.tasks: List[SimpleTask] = []
