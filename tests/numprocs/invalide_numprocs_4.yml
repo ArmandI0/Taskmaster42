@@ -1,7 +1,7 @@
 programs:
   web:
-    cmd: "pythoon3 server.py"
-    numprocs: 10
+    cmd: "python3 server.py"
+    numprocs: 10001
     umask: "022"
     autostart: true
     autorestart: never

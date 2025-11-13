@@ -1,10 +1,10 @@
 programs:
   web:
-    cmd: "python3 server.py"
+    cmd: "python33 server.py"
     numprocs: 2
     umask: "022"
     autostart: true
-    autorestart: false
+    autorestart: never
     exitcodes: [0]
     startretries: 0
     starttime: 1
@@ -17,7 +17,7 @@ programs:
     cmd: "bash print.sh"
     numprocs: 1
     autostart: true
-    autorestart: false
+    autorestart: never
     stdout: print.out
     stderr: print.err
     workingdir: tests
@@ -25,7 +25,7 @@ programs:
     cmd: "python3 random_file.py"
     numprocs: 10
     autostart: true
-    autorestart: false
+    autorestart: never
     stdout: random_file.log
     stderr: random_file.log
     workingdir: tests/randomFiles

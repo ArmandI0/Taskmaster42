@@ -1,10 +1,10 @@
 programs:
   web:
-    cmd: "/bin/sh -c '/bin/sleep 2; exit 1'"
+    cmd: "/bin/sh -c '/bin/sleep 2; exit 0'"
     numprocs: 10
     umask: "022"
     autostart: true
-    autorestart: false
+    autorestart: never
     exitcodes: [0]
     startretries: 0
     starttime: 1

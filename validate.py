@@ -63,8 +63,8 @@ def validate_cmd(name, config):
 
 def validate_numprocs(name, config, default = 1):
     numprocs = config.get("numprocs", default)
-    if not isinstance(numprocs, int) or numprocs < 1:
-        err(name, "'numprocs' must be a positive integer.")
+    if not isinstance(numprocs, int) or numprocs < 1 or numprocs > 10000:
+        err(name, "'numprocs' must be a positive integer between 1 and 10 000.")
     return numprocs
 
 def validate_umask(name, config, default="022"):
