@@ -1,8 +1,8 @@
 programs:
-  web:
-    cmd: "./random/python3 server.py"
+  umasktest:
+    cmd: "python3 umaskTest.py"
     numprocs: 10
-    umask: "022"
+    umask: "027"
     autostart: true
     autorestart: never
     exitcodes: [0]
@@ -10,6 +10,6 @@ programs:
     starttime: 1
     stopsignal: TERM
     stoptime: 6
-    stdout: web.out
-    stderr: web.err
+    stdout: umask.out
+    stderr: umask.err
     workingdir: tests

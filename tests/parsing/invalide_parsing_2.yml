@@ -11,5 +11,5 @@ programs:
     stoptime: 6
     stdout: hello-web.out
     stderr: hello-web.err
-    workingdir: test_programs
+    workingdir: tests
 
